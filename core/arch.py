@@ -40,8 +40,8 @@ class x86(Arch):
     _cs = CS_ARCH_X86, CS_MODE_32
     _ks = KS_ARCH_X86, KS_MODE_32
 
-    def call(self, dst): return 'call %s;' % dst
-    def jmp(self, dst):  return 'jmp %s;' % dst
+    def call(self, dst): return 'call 0x%x;' % dst
+    def jmp(self, dst):  return 'jmp 0x%x;' % dst
 
     def ret(self): return 'ret;'
     def nop(self): return 'nop;'
@@ -59,9 +59,9 @@ class x86(Arch):
         sub edi, ref - _PKST_
         mov esi, edi
 
-        add edi, 0x%x
-        add esi, 0x%x
-        mov ecx, 0x%x
+        add edi, %d
+        add esi, %d
+        mov ecx, %d
 
         rep movsb
 
@@ -82,7 +82,7 @@ class x86_64(x86):
 
         lea rdi, [rip - _PKST_ + %d]
         lea rsi, [rip - _PKST_ + %d]
-        mov rcx, 0x%x
+        mov rcx, %d
 
         rep movsb
 

@@ -6,7 +6,7 @@ import compiler
 from func import Func
 from util import stdlib
 from util.elffile import EM
-from util.patch.dis import irdis
+from util.patch.dis import irdis, IR, IRStream
 
 def pfcol(s):
     return '[\033[1m\033[32m%s\033[0m] ' % s
@@ -16,10 +16,13 @@ class Context(object):
         self.binary = binary
         self.verbose = verbose
         machine = EM[binary.elf.header.machine]
+        cflags = binary.linker.cflags
         if machine == EM['EM_386']:
             self.arch = arch.x86()
+            cflags.append('-m32')
         elif machine == EM['EM_X86_64']:
             self.arch = arch.x86_64()
+            cflags.append('-m64')
         elif machine == EM['EM_ARM']:
             self.arch = arch.arm()
         else:
@@ -136,6 +139,24 @@ class Context(object):
 
     def dis(self, addr, size=64):
         return self.arch.dis(self.elf.read(addr, size), addr)
+
+    def disiter(self, addr):
+        # TODO: handle reading past the end
+        dis = self.dis(addr, 128)
+        while True:
+            if not dis:
+                break
+            for ins in dis:
+                yield ins
+            ins = dis[-1]
+            addr = ins.address + len(ins.bytes)
+            dis = self.dis(addr, 128)
+
+    def irdis(self, addr, size=64):
+        return irdis(self.dis(addr, size))
+
+    def irstream(self, addr):
+        return IRStream(self.disiter(addr))
 
     def ir(self, asm, **kwargs):
         return irdis(self.arch.dis(self.asm(asm, **kwargs), addr=kwargs.get('addr', 0)))
@@ -260,6 +281,7 @@ class Context(object):
             typ = 'c'
         elif hex is not None:
             raw = binascii.unhexlify(hex)
+            typ = 'raw'
         elif raw is not None:
             typ = 'raw'
         else:
